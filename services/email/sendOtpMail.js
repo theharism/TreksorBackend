@@ -28,7 +28,7 @@ module.exports = (email, otp) => {
         </div>
         `;
 
-      logger.debug(`Email HTML content generated for ${email} as ${html}`);
+      logger.info(`Email HTML content generated for ${email} as ${html}`);
 
       await sendEmail({
         to: email,

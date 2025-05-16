@@ -35,6 +35,11 @@ const UserSchema = new mongoose.Schema({
         enum: ["user", "admin"],
         default: "user",
     },
+    isVerified: {
+        type: Boolean,
+        required: true,
+        default: false,
+    },
     resetPasswordToken: {
         type: String,
         required: false,

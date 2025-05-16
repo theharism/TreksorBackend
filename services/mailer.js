@@ -22,6 +22,8 @@ module.exports = async function ({ to, subject, html }) {
         await transporter.sendMail(mailOptions);
         logger.info(logger.logTypes.EMAIL,{ success: true, message: "Email sent successfully", to, subject });
     } catch (error) {
+        console.error("Error sending email:", error);
         logger.error(logger.logTypes.EMAIL, { success: false, error: error.message, to, subject });
+        throw new Error(error.message);
     }
 };

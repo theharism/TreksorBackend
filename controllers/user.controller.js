@@ -7,12 +7,21 @@ exports.me = async (req, res) => {
 
         const user = req.user;
 
+        if(!user.isVerified) {
+            return res.status(401).json({
+                status: false,
+                data: {},
+                message: "Your email is not verified. Please verify your email to access this resource.",
+            });
+        }
+
         const response = {
             user : {
                 id: user._id,
                 name: user.name,
                 email:user.email,
                 role:user.role,
+                isVerified: user.isVerified,
             },
         }
         

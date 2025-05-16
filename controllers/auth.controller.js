@@ -1,9 +1,11 @@
 const User = require('../models/user.model');
 const Otp = require('../models/otp.model');
 const sendResetPasswordMail = require('../services/email/sendResetPasswordMail');
+const sendOtpMail = require('../services/email/sendOtpMail');
 const logger = require('../services/logger'); // Assuming you have a logger service
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
+const { generateOtp } = require('../utils/otp');
 
 // login
 exports.login = async (req, res) => {
@@ -23,7 +25,6 @@ exports.login = async (req, res) => {
         if (!isPasswordValid)
             return res.status(401).json({
                 status: "failed",
-                data: [],
                 message:
                     "Invalid email or password. Please try again with the correct credentials.",
             });
@@ -31,7 +32,7 @@ exports.login = async (req, res) => {
         res.status(200).json({
             status: "success",
             message: "You have successfully logged in.",
-            data: { token: token, user: { id: user._id, name:user.name, email: user.email, role: user.role, isStripeConnected:user.stripeAccountId ?? false } },
+            data: { token },
         });
     } catch (error) {
         logger.error(`Error fetching user with email ${req.body.email}: `, error);
@@ -43,16 +44,11 @@ exports.register = async (req, res) => {
     try {
         const user = await User.create(req.body);
         logger.info(`Created user with email ${req.body.email} successfully`);
-        const customer = await stripe.customers.create({
-            email: user.email,
-        });
-        user.stripeCustomerId = customer.id; // Set the Stripe customer ID
         await user.save(); // Save the updated user object
-        logger.info(`Stripe customer created for user ${user.email} with ID ${customer.id}`);
         const token = user.generateAccessJWT(); // generate session token for user
         res.status(201).json({
-            success: true, message: 'User created successfully',
-            data: { token: token, user: { id: user._id, name:user.name, email: user.email, role: user.role, isStripeConnected: false } },
+            success: true,
+            message: 'User created successfully',
         });
     } catch (error) {
         if (error.code === 11000) {
@@ -86,6 +82,8 @@ exports.requestOtp = async (req, res) => {
         const expiresAt = Date.now() + 5 * 60 * 1000;
         const attemptsLeft = 3;
 
+        await sendOtpMail(email, otp)
+
         if (existingOtp) await Otp.deleteOne({ email });
 
         await Otp.create({
@@ -94,8 +92,6 @@ exports.requestOtp = async (req, res) => {
             expiresAt,
             attemptsLeft,
         });
-
-        await sendOtpMail(email, otp)
 
         logger.info(`Registration Otp created for ${email}`);
         res.status(200).json({ success: true, message: 'Registration Otp sent to email' });
@@ -109,24 +105,53 @@ exports.verifyOtp = async (req, res) => {
     try {
         const { email, otp } = req.body;
 
-        const record = await Otp.findOne({email});
-        if (!record) return res.status(400).json({ success:false, message: "OTP not found." });
-        if (record.expiresAt < Date.now()) return res.status(400).json({ success:false, message: "OTP expired." });
-        if (record.attemptsLeft <= 0) return res.status(400).json({ success:false, message: "Too many attempts." });
-    
-        const match = await bcrypt.compare(otp, record.hashedOtp);
-        if (!match) {
-          record.attemptsLeft -= 1;
-          await record.save();
-          return res.status(400).json({ success: false, message: "Invalid OTP." });
+        logger.info(`OTP verification requested for email: ${email}`);
+
+        const record = await Otp.findOne({ email });
+        if (!record) {
+            logger.warn(`OTP not found for email: ${email}`);
+            return res.status(400).json({ success: false, message: "OTP not found." });
         }
 
-        await Otp.deleteOne({email});
+        if (record.expiresAt < Date.now()) {
+            logger.warn(`OTP expired for email: ${email}`);
+            return res.status(400).json({ success: false, message: "OTP expired." });
+        }
 
-        logger.info(`Registration otp successfully verified for ${email}`);
-        res.status(200).json({ success: true, message: 'Registration Otp Verified' });
+        if (record.attemptsLeft <= 0) {
+            logger.warn(`Too many OTP attempts for email: ${email}`);
+            return res.status(400).json({ success: false, message: "Too many attempts." });
+        }
+
+        const match = await bcrypt.compare(otp, record.otp);
+        if (!match) {
+            record.attemptsLeft -= 1;
+            await record.save();
+            logger.warn(`Invalid OTP entered for email: ${email}. Attempts left: ${record.attemptsLeft}`);
+            return res.status(400).json({ success: false, message: "Invalid OTP." });
+        }
+
+        await Otp.deleteOne({ email });
+        logger.info(`OTP successfully verified for email: ${email}`);
+
+        const user = await User.findOneAndUpdate(
+            { email },
+            { isVerified: true },
+            { new: true }
+        );
+
+        if (!user) {
+            logger.warn(`User not found for email: ${email} during OTP verification`);
+            return res.status(404).json({ success: false, message: "User not found." });
+        }
+
+        logger.info(`User with email ${email} successfully verified`);
+
+        const token = user.generateAccessJWT(); // generate session token for user
+
+        res.status(200).json({ success: true, message: 'Registration Otp Verified', data: { token } });
     } catch (error) {
-        logger.error('Error verifying registration otp:', error);
+        logger.error(`Error verifying OTP for email ${req.body.email}:`, error);
         res.status(500).json({ success: false, message: 'Server Error' });
     }
 };
