@@ -77,4 +77,6 @@ const logger = new winston.createLogger({
   exitOnError: false,
 });
 
+logger.logTypes = require("../config/logTypes");
+
 module.exports = logger;
