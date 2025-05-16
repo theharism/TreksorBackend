@@ -66,17 +66,15 @@ if (keys.server_type === "vercel") {
       })
     );
   }
-
-  const logger = new winston.createLogger({
-    format: winston.format.combine(
-      winston.format.timestamp(),
-      winston.format.json()
-    ),
-    transports,
-    exitOnError: false,
-  });
-
-  logger.logTypes = require("../config/logTypes");
 }
+
+const logger = new winston.createLogger({
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.json()
+  ),
+  transports,
+  exitOnError: false,
+});
 
 module.exports = logger;
