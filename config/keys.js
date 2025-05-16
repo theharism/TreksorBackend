@@ -1,7 +1,5 @@
 const path = require("path");
-require("dotenv").config({
-  path: path.resolve(__dirname, `../.env.${process.env.NODE_ENV}`),
-});
+require("dotenv");
 
 module.exports = {
     port: process.env.PORT || 3000,
@@ -11,4 +9,5 @@ module.exports = {
     USER_MAIL: process.env.USER_MAIL,
     PASS_MAIL: process.env.PASS_MAIL,
     client_url: process.env.CLIENT_URL || "http://localhost:8081",
+    server_type: process.env.SERVER_TYPE || "local",
 };

@@ -1,11 +1,11 @@
 {
   "name": "treksorbackend",
   "version": "1.0.0",
-  "main": "server.js",
+  "main": "index.js",
   "scripts": {
-    "start": "cross-env NODE_ENV=production node server.js",
-    "dev": "cross-env NODE_ENV=development nodemon server.js",
-    "staging": "cross-env NODE_ENV=staging nodemon server.js",
+    "start": "cross-env NODE_ENV=production node index.js",
+    "dev": "cross-env NODE_ENV=development nodemon index.js",
+    "staging": "cross-env NODE_ENV=staging nodemon index.js",
     "analyze": "npm run analyze --prefix client"
   },
   "keywords": [],
