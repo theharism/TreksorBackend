@@ -1,10 +1,8 @@
-const keys = require('../config/keys');
 const User = require('../models/user.model');
 const sendResetPasswordMail = require('../services/email/sendResetPasswordMail');
 const logger = require('../services/logger'); // Assuming you have a logger service
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
-const stripe = require('stripe')(keys.stripe_secret_key); // Stripe SDK initialized with secret key
 
 // login
 exports.login = async (req, res) => {
@@ -133,54 +131,4 @@ exports.logout = async (req, res) => {
         });
     }
     res.end();
-};
-
-exports.checkAuth = async (req, res) => {
-    res.status(200).json({ message: 'You are authenticated!' });
-}
-
-exports.stripeConnect = async (req, res) => {
-    try {
-        const url = `https://connect.stripe.com/oauth/authorize?response_type=code&client_id=${keys.stripe_client_id}&scope=read_write&redirect_uri=${keys.stripe_redirect_uri}&state=${req.user._id}`;
-        logger.info(`Stripe OAuth URL created for user ${req.user.email} : ${url}`);
-        res.json({ success:true, message:"OAuth url created", data: {url} });
-    }
-    catch (error) {
-        logger.error('Error creating stripe oauth url:', error);
-        res.status(500).json({ success: false, message: 'Server Error' });
-    }
-}
-
-exports.stripeCallback = async (req, res) => {
-    try {
-        const { code,state} = req.query;
-
-        const response = await stripe.oauth.token({
-            grant_type: 'authorization_code',
-            code: code,
-        });
-
-        logger.info(`Stripe OAuth token response: ${JSON.stringify(response)}`);
-
-        const connectedAccountId = response.stripe_user_id;
-
-        // Append `connectedAccountId` to the session user and save the user
-        const user = await User.findById(state);
-        if (!user) {
-            logger.warn(`User not found for ID: ${state}`);
-            return res.status(404).json({ success: false, message: 'User not found' });
-        }
-
-        user.stripeAccountId = connectedAccountId;
-        await user.save();
-
-        logger.info(`Connected Stripe account ${connectedAccountId} saved for user ${user.email}`);
-
-        // Redirect back to frontend, or show success page
-        res.redirect(keys.client_url);
-    }
-    catch (error) {
-        logger.error('Error stripe callback url:', error);
-        res.status(500).json({ success: false, message: 'Server Error' });
-    }
 };

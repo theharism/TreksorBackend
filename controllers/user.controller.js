@@ -1,4 +1,3 @@
-const Subscription = require('../models/subscription.model');
 const logger = require('../services/logger'); // Assuming you have a logger service
 
 // login
@@ -7,10 +6,6 @@ exports.me = async (req, res) => {
         logger.info(`Fetching user with email ${req.user.email}`);
 
         const user = req.user;
-        const subscription = await Subscription.findByUserId(user._id);
-        if (!subscription) {
-            logger.warn(`No subscription found for user with email ${req.user.email}`);
-        }
 
         const response = {
             user : {
@@ -18,11 +13,7 @@ exports.me = async (req, res) => {
                 name: user.name,
                 email:user.email,
                 role:user.role,
-                isStripeConnected: user.stripeCustomerId ? true : false
             },
-            subscription: {
-                isActive: subscription ? subscription.isActive : false,
-            }
         }
         
         res.status(200).json({

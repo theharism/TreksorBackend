@@ -35,21 +35,6 @@ const UserSchema = new mongoose.Schema({
         enum: ["user", "admin"],
         default: "user",
     },
-    stripeAccountId: {
-        type: String,
-        required: false,
-        default: null,
-    },
-    stripeCustomerId: {
-        type: String,
-        required: false,
-        default: null,
-    },
-    referralTag: {
-        type: String,
-        required: false,
-        default: null,
-    },
     resetPasswordToken: {
         type: String,
         required: false,
@@ -85,10 +70,6 @@ UserSchema.methods.generateAccessJWT = function () {
     return jwt.sign(payload, jwt_secret_token, {
       expiresIn: '30d',
     });
-};
-
-UserSchema.statics.findByStripeCustomerId = function (stripeCustomerId) {
-    return this.findOne({ stripeCustomerId: stripeCustomerId });
 };
 
 module.exports = mongoose.model("User", UserSchema);
