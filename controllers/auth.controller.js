@@ -1,4 +1,5 @@
 const User = require('../models/user.model');
+const Otp = require('../models/otp.model');
 const sendResetPasswordMail = require('../services/email/sendResetPasswordMail');
 const logger = require('../services/logger'); // Assuming you have a logger service
 const bcrypt = require('bcrypt');
@@ -58,6 +59,74 @@ exports.register = async (req, res) => {
             return res.status(400).json({ success: false, message: 'email already exists' });
         }
         logger.error(`Error creating user with email ${req.body.email}: `, error);
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+};
+
+exports.requestOtp = async (req, res) => {
+    try {
+        const { email } = req.body;
+
+        if (!email) {
+            logger.warn(`Email is required: ${email}`);
+            return res.status(200).json({ success: true }); // Always respond with 200
+        }
+
+        const existingOtp = await Otp.findOne({ email });
+
+        if (existingOtp && Date.now() < existingOtp.expiresAt) {
+            logger.warn(`OTP re-requested too soon for ${email}`);
+            return res.status(200).json({
+                success: true,
+                message: 'OTP already sent recently. Please wait before requesting again.',
+            });
+        }
+
+        const otp = generateOtp();
+        const expiresAt = Date.now() + 5 * 60 * 1000;
+        const attemptsLeft = 3;
+
+        if (existingOtp) await Otp.deleteOne({ email });
+
+        await Otp.create({
+            email,
+            otp,
+            expiresAt,
+            attemptsLeft,
+        });
+
+        await sendOtpMail(email, otp)
+
+        logger.info(`Registration Otp created for ${email}`);
+        res.status(200).json({ success: true, message: 'Registration Otp sent to email' });
+    } catch (error) {
+        logger.error('Error creating registration otp:', error);
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+};
+
+exports.verifyOtp = async (req, res) => {
+    try {
+        const { email, otp } = req.body;
+
+        const record = await Otp.findOne({email});
+        if (!record) return res.status(400).json({ success:false, message: "OTP not found." });
+        if (record.expiresAt < Date.now()) return res.status(400).json({ success:false, message: "OTP expired." });
+        if (record.attemptsLeft <= 0) return res.status(400).json({ success:false, message: "Too many attempts." });
+    
+        const match = await bcrypt.compare(otp, record.hashedOtp);
+        if (!match) {
+          record.attemptsLeft -= 1;
+          await record.save();
+          return res.status(400).json({ success: false, message: "Invalid OTP." });
+        }
+
+        await Otp.deleteOne({email});
+
+        logger.info(`Registration otp successfully verified for ${email}`);
+        res.status(200).json({ success: true, message: 'Registration Otp Verified' });
+    } catch (error) {
+        logger.error('Error verifying registration otp:', error);
         res.status(500).json({ success: false, message: 'Server Error' });
     }
 };
