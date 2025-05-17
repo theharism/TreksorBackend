@@ -8,8 +8,8 @@ exports.me = async (req, res) => {
         const user = req.user;
 
         if(!user.isVerified) {
-            return res.status(400).json({
-                status: false,
+            return res.status(200).json({
+                success: false,
                 data: {
                     user: {
                         id: "",
@@ -34,7 +34,7 @@ exports.me = async (req, res) => {
         }
         
         res.status(200).json({
-            status: "success",
+            success: true,
             data: response,
         });
     } catch (error) {
