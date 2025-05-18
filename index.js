@@ -5,6 +5,7 @@ const routes = require('./routes');
 const loggingMiddleware = require('./middlewares/loggingMiddleware');
 const cors = require('cors');
 const db = require("./config/db");
+const path = require('path');
 
 const app = express();
 
