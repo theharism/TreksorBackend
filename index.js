@@ -23,6 +23,9 @@ app.use(loggingMiddleware);
 
 app.use('/api/v1', routes);
 
+const uploads = path.join(__dirname, './uploads');
+app.use('/uploads', express.static(uploads));
+
 app.listen(keys.port, () => {
   logger.info(logger.logTypes.SERVER,{message:`Server is running on port ${keys.port} - ${keys.env} Level`});
 });
