@@ -1,5 +1,5 @@
 const logger = require('../services/logger'); // Assuming you have a logger service
-
+const User = require('../models/user.model'); // Assuming you have a User model
 // login
 exports.me = async (req, res) => {
     try {
@@ -57,7 +57,7 @@ exports.updateProfile = async (req, res) => {
             });
         }
 
-        const user = req.user;
+        const user = await User.findById(req.user._id);
 
         if (name) {
             user.name = name;
