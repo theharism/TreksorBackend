@@ -27,6 +27,12 @@ const OtpSchema = new mongoose.Schema({
         required: true,
         default: 3
     }, 
+    type: {
+        type: String,
+        enum: ["reset-password", "registration"],
+        required: true,
+        default: "registration"
+    },
 },{ timestamps: true });
 
 OtpSchema.pre("save", function (next) {

@@ -1,20 +1,17 @@
 const sendEmail = require('../mailer');
 const logger = require('../logger'); // Assuming you have a logger module
+const keys = require('../../config/keys');
 
-module.exports = (email, resetToken) => {
+module.exports = (email, otp) => {
     return new Promise(async (resolve, reject) => {
         try {
             logger.info(`Starting password reset email process for ${email}`);
-            const resetUrl = `${keys.client_url}/reset-password?token=${resetToken}`;
-            logger.debug(`Generated reset URL: ${resetUrl}`);
 
             const html = `
                 <div style="font-family: sans-serif; line-height: 1.5;">
                     <h2>Password Reset Request</h2>
-                    <p>We received a request to reset your password. Click the link below to set a new password:</p>
-                    <a href="${resetUrl}" style="display: inline-block; padding: 10px 15px; background-color: #007bff; color: white; text-decoration: none; border-radius: 4px;">
-                        Reset Password
-                    </a>
+                    <p>We received a request to reset your password. The verification otp is below to set a new password:</p>
+                    <p>${otp}</p>
                     <p>If you didn’t request this, you can safely ignore this email.</p>
                     <p>This link will expire in 15 minutes.</p>
                 </div>

@@ -103,7 +103,7 @@ exports.requestOtp = async (req, res) => {
 
 exports.verifyOtp = async (req, res) => {
     try {
-        const { email, otp } = req.body;
+        const { email, otp, type } = req.body;
 
         logger.info(`OTP verification requested for email: ${email}`);
 
@@ -134,22 +134,33 @@ exports.verifyOtp = async (req, res) => {
         await Otp.deleteOne({ email });
         logger.info(`OTP successfully verified for email: ${email}`);
 
-        const user = await User.findOneAndUpdate(
-            { email },
-            { isVerified: true },
-            { new: true }
-        );
+        if(type === 'registration') {
+            const user = await User.findOneAndUpdate(
+                { email },
+                { isVerified: true },
+                { new: true }
+            );
 
-        if (!user) {
-            logger.warn(`User not found for email: ${email} during OTP verification`);
-            return res.status(404).json({ success: false, message: "User not found." });
+            if (!user) {
+                logger.warn(`User not found for email: ${email} during OTP verification`);
+                return res.status(404).json({ success: false, message: "User not found." });
+            }
+
+            logger.info(`User with email ${email} successfully verified`);
+
+            const token = user.generateAccessJWT(); // generate session token for user
+
+            return res.status(200).json({ success: true, message: 'Registration Otp Verified', data: { token } });
         }
 
-        logger.info(`User with email ${email} successfully verified`);
+        const resetToken = crypto.randomBytes(32).toString('hex');
+        const tokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
+        const user = await User.findOne({ email });
+        user.resetPasswordToken = tokenHash;
+        user.resetPasswordExpires = Date.now() + 1000 * 60 * 15; // 15 minutes
+        await user.save();
 
-        const token = user.generateAccessJWT(); // generate session token for user
-
-        res.status(200).json({ success: true, message: 'Registration Otp Verified', data: { token } });
+        res.status(200).json({ success: true, message: 'Reset Password Otp Verified', data: {resetToken} });
     } catch (error) {
         logger.error(`Error verifying OTP for email ${req.body.email}:`, error);
         res.status(500).json({ success: false, message: 'Server Error' });
@@ -166,19 +177,36 @@ exports.requestPasswordReset = async (req, res) => {
             return res.status(200).json({ success: true }); // Always respond with 200
         }
 
-        const resetToken = crypto.randomBytes(32).toString('hex');
-        const tokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
+        const existingOtp = await Otp.findOne({ email });
 
-        user.resetPasswordToken = tokenHash;
-        user.resetPasswordExpires = Date.now() + 1000 * 60 * 15; // 15 minutes
-        await user.save();
+        if (existingOtp && Date.now() < existingOtp.expiresAt) {
+            logger.warn(`OTP re-requested too soon for ${email}`);
+            return res.status(200).json({
+                success: true,
+                message: 'OTP already sent recently. Please wait before requesting again.',
+            });
+        }
 
-        await sendResetPasswordMail(user.email, resetToken)
+        const otp = generateOtp();
+        const expiresAt = Date.now() + 5 * 60 * 1000;
+        const attemptsLeft = 3;
+
+        await sendResetPasswordMail(user.email, otp);
+
+        if (existingOtp) await Otp.deleteOne({ email });
+
+        await Otp.create({
+            email,
+            otp,
+            expiresAt,
+            attemptsLeft,
+            type: 'reset-password',
+        });
 
         logger.info(`Password reset token created for ${email}`);
-        res.status(200).json({ success: true, message: 'Password reset link sent to email' });
+        res.status(200).json({ success: true, message: 'Password reset otp sent to email' });
     } catch (error) {
-        logger.error('Error creating password reset token:', error);
+        logger.error('Error creating password reset otp:', error);
         res.status(500).json({ success: false, message: 'Server Error' });
     }
 };
