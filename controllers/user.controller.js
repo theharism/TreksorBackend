@@ -42,3 +42,39 @@ exports.me = async (req, res) => {
         res.status(500).json({ success: false, message: 'Server Error' });
     }
 };
+
+exports.updateProfile = async (req, res) => {
+    try {
+        logger.info(`Updating profile for user with email ${req.user.email}`);
+
+        const { name } = req.body;
+        const avatar = req.file ? req.file.destination + req.file.filename : null;
+        
+        if (!name && !avatar) {
+            return res.status(400).json({
+                success: false,
+                message: "Please provide at least one field to update.",
+            });
+        }
+
+        const user = req.user;
+
+        if (name) {
+            user.name = name;
+        }
+
+        if (avatar) {
+            user.avatar = avatar;
+        }
+
+        await user.save();
+
+        res.status(200).json({
+            success: true,
+            message: "Profile updated successfully.",
+        });
+    } catch (error) {
+        logger.error(`Error updating profile for user with email ${req.user.email}: `, error);
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+}
