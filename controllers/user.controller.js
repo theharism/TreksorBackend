@@ -16,6 +16,7 @@ exports.me = async (req, res) => {
                         name: "",
                         email: "",
                         role: "",
+                        avatar: "",
                         isVerified: false,
                     }
                 },
@@ -29,6 +30,7 @@ exports.me = async (req, res) => {
                 name: user.name,
                 email:user.email,
                 role:user.role,
+                avatar: user.avatar,
                 isVerified: user.isVerified,
             },
         }
