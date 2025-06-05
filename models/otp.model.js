@@ -36,6 +36,7 @@ const OtpSchema = new mongoose.Schema({
 },{ timestamps: true });
 
 OtpSchema.pre("save", function (next) {
+    if (!this.isModified("otp")) return next();
     bcrypt.genSalt(10, (err, salt) => {
         if (err) return next(err);
         bcrypt.hash(this.otp, salt, (err, hash) => {
