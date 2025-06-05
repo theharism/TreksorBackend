@@ -27,6 +27,9 @@ app.use('/api/v1', routes);
 const uploads = path.join(__dirname, './uploads');
 app.use('/uploads', express.static(uploads));
 
+const public = path.join(__dirname, './public');
+app.use('/public', express.static(public));
+
 app.listen(keys.port, () => {
   logger.info(logger.logTypes.SERVER,{message:`Server is running on port ${keys.port} - ${keys.env} Level`});
 });
