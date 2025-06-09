@@ -5,5 +5,6 @@ const router = express.Router();
 router.use('/auth', require('./auth.route'));
 router.use('/user', authenticate, require('./user.route'));
 router.use('/article', authenticate, require('./article.route'));
+router.use('/power-thought', authenticate, require('./powerThought.route'));
 
 module.exports = router;
