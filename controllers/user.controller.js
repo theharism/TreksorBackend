@@ -80,3 +80,30 @@ exports.updateProfile = async (req, res) => {
         res.status(500).json({ success: false, message: 'Server Error' });
     }
 }
+
+exports.savePushToken = async (req, res) => {
+    try {
+        logger.info(`Saving push token for user with email ${req.user.email}`);
+
+        const { pushToken } = req.body;
+
+        if (!pushToken) {
+            return res.status(400).json({
+                success: false,
+                message: "Push token is required.",
+            });
+        }
+
+        const user = await User.findById(req.user._id);
+        user.pushToken = pushToken;
+        await user.save();
+
+        res.status(200).json({
+            success: true,
+            message: "Push token saved successfully.",
+        });
+    } catch (error) {
+        logger.error(`Error saving push token for user with email ${req.user.email}: `, error);
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+}

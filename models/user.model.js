@@ -55,6 +55,10 @@ const UserSchema = new mongoose.Schema({
         required: false,
         default: null,
     }, 
+    pushToken: {
+        type: String,
+        default: null,
+    },
 },{ timestamps: true });
 
 UserSchema.pre("save", function (next) {
