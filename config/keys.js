@@ -11,4 +11,5 @@ module.exports = {
     USER_MAIL: process.env.USER_MAIL,
     PASS_MAIL: process.env.PASS_MAIL,
     client_url: process.env.CLIENT_URL || "http://localhost:8081",
+    openai_api_key: process.env.OPENAI_API_KEY,
 };
