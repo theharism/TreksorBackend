@@ -28,7 +28,8 @@ const UserSchema = new mongoose.Schema({
     },
     password: {
         type: String,
-        required: true,
+        required: false,
+        default: null,
         trim: true,
         minlength: 8,
         maxlength: 128,
@@ -58,6 +59,12 @@ const UserSchema = new mongoose.Schema({
     pushToken: {
         type: String,
         default: null,
+    },
+    authProvider: {
+        type: String,
+        required: true,
+        enum: ["google", "apple", "inapp"],
+        default: "inapp",
     },
 },{ timestamps: true });
 

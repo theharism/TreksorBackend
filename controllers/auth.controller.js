@@ -254,3 +254,59 @@ exports.logout = async (req, res) => {
     }
     res.end();
 };
+
+exports.signInWithGoogle = async (req, res) => {
+    try {
+        const { email, name, photo } = req.body; // Assuming these fields are sent from the client
+
+        const existingUser = await User.findOne({email});
+        if (existingUser) {
+            if(existingUser.authProvider === 'google') {
+                logger.info(`User with email ${email} already exists, logging in...`);
+                const token = existingUser.generateAccessJWT(); // generate session token for user
+                return res.status(200).json({
+                    success: true,
+                    message: 'User logged in successfully',
+                    token: token,
+                });
+            }
+            else {
+                switch (existingUser.authProvider) {
+                    case 'apple':
+                        logger.warn(`User with email ${email} exists but was created with Apple auth provider`);
+                        return res.status(400).json({ success: false, message: 'User already exists with Apple auth provider' });
+                    case 'inapp':
+                        logger.warn(`User with email ${email} exists but was created with in-app auth provider`);
+                        return res.status(400).json({ success: false, message: 'User already exists. Login with email and password' });
+                    default:
+                        logger.warn(`User with email ${email} exists but was created with a different auth provider`);
+                        return res.status(400).json({ success: false, message: 'User already exists with a different auth provider' });
+                }
+            }
+        }
+        
+        logger.info(`Creating new user with email ${email}...`);
+
+        const user = await User.create({
+            email,
+            name,
+            avatar: photo,
+            isVerified: true, // Google sign-in users are considered verified
+            authProvider: 'google',
+        });
+        logger.info(`Created user with email ${req.body.email} successfully`);
+        await user.save(); // Save the updated user object
+        const token = user.generateAccessJWT(); // generate session token for user
+        res.status(201).json({
+            success: true,
+            message: 'User created successfully',
+            token: token,
+        });
+    } catch (error) {
+        if (error.code === 11000) {
+            return res.status(400).json({ success: false, message: 'email already exists' });
+        }
+        logger.error(`Error creating user with email ${req.body.email}: `, error);
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+};
