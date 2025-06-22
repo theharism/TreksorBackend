@@ -255,9 +255,9 @@ exports.logout = async (req, res) => {
     res.end();
 };
 
-exports.signInWithGoogle = async (req, res) => {
+exports.signInWithThirdParty = async (req, res) => {
     try {
-        const { email, name, photo } = req.body; // Assuming these fields are sent from the client
+        const { email, name, photo, provider } = req.body; // Assuming these fields are sent from the client
 
         const existingUser = await User.findOne({email});
         if (existingUser) {
@@ -292,7 +292,7 @@ exports.signInWithGoogle = async (req, res) => {
             name,
             avatar: photo,
             isVerified: true, // Google sign-in users are considered verified
-            authProvider: 'google',
+            authProvider: provider,
         });
         logger.info(`Created user with email ${req.body.email} successfully`);
         await user.save(); // Save the updated user object
