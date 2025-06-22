@@ -18,6 +18,7 @@ exports.me = async (req, res) => {
                         role: "",
                         avatar: "",
                         isVerified: false,
+                        authProvider: user.authProvider,
                     }
                 },
                 message: "Your email is not verified. Please verify your email to access this resource.",
@@ -32,6 +33,7 @@ exports.me = async (req, res) => {
                 role:user.role,
                 avatar: user.avatar,
                 isVerified: user.isVerified,
+                authProvider: user.authProvider,
             },
         }
         
