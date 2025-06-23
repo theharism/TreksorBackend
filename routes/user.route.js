@@ -6,5 +6,6 @@ const upload = require('../config/multer');
 router.get('/me', userController.me);
 router.patch('/profile',upload.single("avatar"), userController.updateProfile);
 router.post('/save-push-token', userController.savePushToken);
+router.delete('/:id', userController.deleteUser);
 
 module.exports = router;

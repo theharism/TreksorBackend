@@ -109,3 +109,28 @@ exports.savePushToken = async (req, res) => {
         res.status(500).json({ success: false, message: 'Server Error' });
     }
 }
+
+exports.deleteUser = async (req,res) => {
+    try {
+        logger.info(`Deleting user with email ${req.user.email}`);
+
+        const user = await User.findById(req.user._id);
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found.",
+            });
+        }
+
+        await User.findByIdAndDelete(req.user._id);
+
+        res.status(200).json({
+            success: true,
+            message: "User deleted successfully.",
+        });
+    } catch (error) {
+        logger.error(`Error deleting user with email ${req.user.email}: `, error);
+        res.status(500).json({ success: false, message: 'Server Error' });   
+    }
+}
