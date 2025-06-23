@@ -25,12 +25,12 @@ exports.createMessage = async (req, res) => {
             temperature: 0,
             messages: [
                 { role: "system", content: systemPrompt },
-                ...messages,
+                ...messages.map(m => ({role:m.role, content: m.content})),
             ],
         });
 
         logger.info("Received response from OpenAI successfully", response.choices[0].message.content);
-        return res.status(200).json({ success: true, data: {id: Date.now().toString(),isUser: false, text: response.choices[0].message.content, timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) } });
+        return res.status(200).json({ success: true, data: {id: Date.now().toString(),role: 'assistant', content: response.choices[0].message.content, timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) } });
     } catch (error) {
         console.error(error)
         logger.error("Error processing OpenAI chat request:", error);
