@@ -15,47 +15,24 @@ exports.createPowerThought = async (req, res) => {
     // Create the messages that you want to send to clients
     let messages = [];
     const somePushTokens = await User.find().select("pushToken");
-    for (let pushToken of somePushTokens) {
-      // Each push token looks like ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]
-
-      // Check that all your push tokens appear to be valid Expo push tokens
-      if (!Expo.isExpoPushToken(pushToken.pushToken)) {
-        console.error(`Push token ${pushToken.pushToken} is not a valid Expo push token`);
+    for (let obj of somePushTokens) {
+      if (!Expo.isExpoPushToken(obj.pushToken)) {
+        console.error(`Push token ${obj.pushToken} is not a valid Expo push token`);
         continue;
       }
 
-      // Construct a message (see https://docs.expo.io/push-notifications/sending-notifications/)
       messages.push({
-        to: pushToken.pushToken,
+        to: obj.pushToken,
         sound: 'default',
         body: 'This is a test notification',
         data: { withSome: 'data' },
-        // richContent: {
-        //   image: 'https://example.com/statics/some-image-here-if-you-want.jpg'
-        // },
       })
     }
-
-    // The Expo push notification service accepts batches of notifications so
-    // that you don't need to send 1000 requests to send 1000 notifications. We
-    // recommend you batch your notifications to reduce the number of requests
-    // and to compress them (notifications with similar content will get
-    // compressed).
     let chunks = expo.chunkPushNotifications(messages);
-    let tickets = [];
     (async () => {
-      // Send the chunks to the Expo push notification service. There are
-      // different strategies you could use. A simple one is to send one chunk at a
-      // time, which nicely spreads the load out over time:
       for (let chunk of chunks) {
         try {
-          let ticketChunk = await expo.sendPushNotificationsAsync(chunk);
-          console.log(ticketChunk);
-          tickets.push(...ticketChunk);
-          // NOTE: If a ticket contains an error code in ticket.details.error, you
-          // must handle it appropriately. The error codes are listed in the Expo
-          // documentation:
-          // https://docs.expo.io/push-notifications/sending-notifications/#individual-errors
+          await expo.sendPushNotificationsAsync(chunk);
         } catch (error) {
           console.error(error);
         }
@@ -71,13 +48,13 @@ exports.createPowerThought = async (req, res) => {
 // Get all power thoughts with pagination
 exports.getAllPowerThoughts = async (req, res) => {
   try {
-    let { page = 1, limit = 10 } = req.query;
+    let { page = 1, limit = 10, date } = req.query;
     page = parseInt(page);
     limit = parseInt(limit);
     const skip = (page - 1) * limit;
 
     const [thoughts, total] = await Promise.all([
-      PowerThought.find().sort({ createdAt: -1 }).skip(skip).limit(limit),
+      PowerThought.find({date}).sort({ createdAt: -1 }).skip(skip).limit(limit),
       PowerThought.countDocuments()
     ]);
 
