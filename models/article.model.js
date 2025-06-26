@@ -24,7 +24,7 @@ const articleSchema = new mongoose.Schema({
     },
     date: {
         type: String,
-        default: () => new Date().toISOString().split("T")[0]
+        required: true,
     },
 },{
     timestamps:true

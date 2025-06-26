@@ -20,11 +20,14 @@ exports.getAllArticles = async (req, res) => {
         let { page = 1, limit = 10, category = 'all', date} = req.query;
         page = parseInt(page);
         limit = parseInt(limit);
+        const isAdmin = req.user.role === 'admin';
 
         const skip = (page - 1) * limit;
 
-        const query = category === 'all' ? {date} : { category, date };
-
+        let query = category === 'all' ? {} : { category };
+        if (isAdmin) {
+            query.date = date;
+        }
         const [articles, total] = await Promise.all([
             Article.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit),
             Article.countDocuments(query)

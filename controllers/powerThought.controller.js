@@ -49,12 +49,14 @@ exports.createPowerThought = async (req, res) => {
 exports.getAllPowerThoughts = async (req, res) => {
   try {
     let { page = 1, limit = 10, date } = req.query;
+    const isAdmin = req.user.role === 'admin';
+    const query = isAdmin ? {} : {date}
     page = parseInt(page);
     limit = parseInt(limit);
     const skip = (page - 1) * limit;
 
     const [thoughts, total] = await Promise.all([
-      PowerThought.find({date}).sort({ createdAt: -1 }).skip(skip).limit(limit),
+      PowerThought.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit),
       PowerThought.countDocuments()
     ]);
 
