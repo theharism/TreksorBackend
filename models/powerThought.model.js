@@ -2,7 +2,7 @@ const { default: mongoose } = require("mongoose");
 
 const powerThoughtSchema = new mongoose.Schema({
     date: {
-        type: Date,
+        type: String,
         required: true,
     },
     thought: {

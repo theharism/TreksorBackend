@@ -25,7 +25,7 @@ exports.getAllArticles = async (req, res) => {
         const skip = (page - 1) * limit;
 
         let query = category === 'all' ? {} : { category };
-        if (isAdmin) {
+        if (!isAdmin) {
             query.date = date;
         }
         const [articles, total] = await Promise.all([
