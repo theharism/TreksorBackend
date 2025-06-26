@@ -17,13 +17,13 @@ exports.createArticle = async (req, res) => {
 // Get all articles with pagination
 exports.getAllArticles = async (req, res) => {
     try {
-        let { page = 1, limit = 10, category = 'all' } = req.query;
+        let { page = 1, limit = 10, category = 'all', date} = req.query;
         page = parseInt(page);
         limit = parseInt(limit);
 
         const skip = (page - 1) * limit;
 
-        const query = category === 'all' ? {} : { category };
+        const query = category === 'all' ? {date} : { category, date };
 
         const [articles, total] = await Promise.all([
             Article.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit),
