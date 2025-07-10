@@ -50,7 +50,7 @@ exports.getAllPowerThoughts = async (req, res) => {
   try {
     let { page = 1, limit = 10, date } = req.query;
     const isAdmin = req.user.role === 'admin';
-    const query = isAdmin ? {} : {date}
+    const query = isAdmin ? {} : {date: { $lte: date }};
     page = parseInt(page);
     limit = parseInt(limit);
     const skip = (page - 1) * limit;
