@@ -26,7 +26,7 @@ exports.getAllArticles = async (req, res) => {
 
         let query = category === 'all' ? {} : { category };
         if (!isAdmin) {
-            query.date = date;
+            query.date = { $lte: date };
         }
         const [articles, total] = await Promise.all([
             Article.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit),
