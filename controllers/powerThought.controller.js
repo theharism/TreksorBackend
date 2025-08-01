@@ -56,7 +56,7 @@ exports.getAllPowerThoughts = async (req, res) => {
     const skip = (page - 1) * limit;
 
     const [thoughts, total] = await Promise.all([
-      PowerThought.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit),
+      PowerThought.find(query).sort({ createdAt: -1 }),
       PowerThought.countDocuments()
     ]);
 

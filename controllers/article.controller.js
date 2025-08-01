@@ -29,7 +29,7 @@ exports.getAllArticles = async (req, res) => {
             query.date = { $lte: date };
         }
         const [articles, total] = await Promise.all([
-            Article.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit),
+            Article.find(query).sort({ createdAt: -1 }),
             Article.countDocuments(query)
         ]);
 
