@@ -9,6 +9,11 @@ const UserSchema = new mongoose.Schema({
         required: false,
         default: null,
     },
+    plan: {
+        type: String,
+        required: false,
+        default: null,
+    },
     name: {
         type: String,
         required: true,
@@ -18,7 +23,7 @@ const UserSchema = new mongoose.Schema({
         type: String,
         required: true,
         unique: true,
-        trim: true,
+        trim: true, 
         validate: {
             validator: function (v) {
                 return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);

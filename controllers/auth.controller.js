@@ -68,7 +68,7 @@ exports.requestOtp = async (req, res) => {
             return res.status(200).json({ success: true }); // Always respond with 200
         }
 
-        const existingOtp = await Otp.findOne({ email });
+        const existingOtp = await Otp.findOne({ email: email?.toLowerCase() });
 
         if (existingOtp && Date.now() < existingOtp.expiresAt) {
             logger.warn(`OTP re-requested too soon for ${email}`);
@@ -84,10 +84,10 @@ exports.requestOtp = async (req, res) => {
 
         await sendOtpMail(email, otp)
 
-        if (existingOtp) await Otp.deleteOne({ email });
+        if (existingOtp) await Otp.deleteOne({ email: email?.toLowerCase() });
 
         await Otp.create({
-            email,
+            email: email?.toLowerCase(),
             otp,
             expiresAt,
             attemptsLeft,
@@ -107,7 +107,7 @@ exports.verifyOtp = async (req, res) => {
 
         logger.info(`OTP verification requested for email: ${email}`);
 
-        const record = await Otp.findOne({ email });
+        const record = await Otp.findOne({ email: email?.toLowerCase() });
         if (!record) {
             logger.warn(`OTP not found for email: ${email}`);
             return res.status(400).json({ success: false, message: "OTP not found." });
@@ -131,12 +131,12 @@ exports.verifyOtp = async (req, res) => {
             return res.status(400).json({ success: false, message: "Invalid OTP." });
         }
 
-        await Otp.deleteOne({ email });
+        await Otp.deleteOne({ email: email?.toLowerCase() });
         logger.info(`OTP successfully verified for email: ${email}`);
 
         if(type === 'registration') {
             const user = await User.findOneAndUpdate(
-                { email },
+                { email: email?.toLowerCase() },
                 { isVerified: true },
                 { new: true }
             );
@@ -155,7 +155,7 @@ exports.verifyOtp = async (req, res) => {
 
         const resetToken = crypto.randomBytes(32).toString('hex');
         const tokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
-        const user = await User.findOne({ email });
+        const user = await User.findOne({ email: email?.toLowerCase() });
         user.resetPasswordToken = tokenHash;
         user.resetPasswordExpires = Date.now() + 1000 * 60 * 15; // 15 minutes
         await user.save();
@@ -170,14 +170,14 @@ exports.verifyOtp = async (req, res) => {
 exports.requestPasswordReset = async (req, res) => {
     try {
         const { email } = req.body;
-        const user = await User.findOne({ email });
+        const user = await User.findOne({ email: email?.toLowerCase() });
 
         if (!user) {
             logger.warn(`Password reset requested for non-existent email: ${email}`);
             return res.status(200).json({ success: true }); // Always respond with 200
         }
 
-        const existingOtp = await Otp.findOne({ email });
+        const existingOtp = await Otp.findOne({ email: email?.toLowerCase() });
 
         if (existingOtp && Date.now() < existingOtp.expiresAt) {
             logger.warn(`OTP re-requested too soon for ${email}`);
@@ -193,10 +193,10 @@ exports.requestPasswordReset = async (req, res) => {
 
         await sendResetPasswordMail(user.email, otp);
 
-        if (existingOtp) await Otp.deleteOne({ email });
+        if (existingOtp) await Otp.deleteOne({ email: email?.toLowerCase() });
 
         await Otp.create({
-            email,
+            email: email?.toLowerCase(),
             otp,
             expiresAt,
             attemptsLeft,
@@ -259,7 +259,7 @@ exports.signInWithThirdParty = async (req, res) => {
     try {
         const { email, name, photo, provider } = req.body; // Assuming these fields are sent from the client
 
-        const existingUser = await User.findOne({email});
+        const existingUser = await User.findOne({email: email?.toLowerCase()});
         if (existingUser) {
             if(existingUser.authProvider === 'google') {
                 logger.info(`User with email ${email} already exists, logging in...`);
@@ -288,7 +288,7 @@ exports.signInWithThirdParty = async (req, res) => {
         logger.info(`Creating new user with email ${email}...`);
 
         const user = await User.create({
-            email,
+            email: email?.toLowerCase(),
             name,
             avatar: photo,
             isVerified: true, // Google sign-in users are considered verified
