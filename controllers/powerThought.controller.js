@@ -12,33 +12,79 @@ exports.createPowerThought = async (req, res) => {
   try {
     const thought = await PowerThought.create(req.body);
     logger.info(`PowerThought created on ${thought.date}`);
+    
+    // Get all users with valid push tokens
+    const users = await User.find({ 
+      pushToken: { $ne: null, $exists: true } 
+    }).select("pushToken");
+    
+    if (users.length === 0) {
+      logger.info("No users with push tokens found");
+      return res.status(201).json({ success: true, data: thought });
+    }
+
     // Create the messages that you want to send to clients
     let messages = [];
-    const somePushTokens = await User.find().select("pushToken");
-    for (let obj of somePushTokens) {
-      if (!Expo.isExpoPushToken(obj.pushToken)) {
-        console.error(`Push token ${obj.pushToken} is not a valid Expo push token`);
+    for (let user of users) {
+      if (!user.pushToken || !Expo.isExpoPushToken(user.pushToken)) {
+        logger.warn(`Push token ${user.pushToken} is not a valid Expo push token`);
         continue;
       }
 
+      // Truncate thought if too long for notification body (max ~100 chars recommended)
+      const notificationBody = thought.thought.length > 100 
+        ? thought.thought.substring(0, 97) + '...' 
+        : thought.thought;
+
       messages.push({
-        to: obj.pushToken,
+        to: user.pushToken,
         sound: 'default',
-        body: 'This is a test notification',
-        data: { withSome: 'data' },
-      })
+        title: 'New Power Thought 💪',
+        body: notificationBody,
+        data: { 
+          type: 'powerThought',
+          powerThoughtId: thought._id.toString(),
+          date: thought.date,
+          thought: thought.thought
+        },
+      });
     }
+
+    if (messages.length === 0) {
+      logger.info("No valid push tokens to send notifications to");
+      return res.status(201).json({ success: true, data: thought });
+    }
+
+    // Send notifications in chunks
     let chunks = expo.chunkPushNotifications(messages);
+    let tickets = [];
+    
     (async () => {
       for (let chunk of chunks) {
         try {
-          await expo.sendPushNotificationsAsync(chunk);
+          const ticketChunk = await expo.sendPushNotificationsAsync(chunk);
+          tickets.push(...ticketChunk);
+          logger.info(`Sent ${chunk.length} push notifications`);
         } catch (error) {
-          console.error(error);
+          logger.error("Error sending push notifications:", error);
         }
       }
+      
+      // Log receipt IDs for tracking (optional)
+      const receiptIds = tickets
+        .filter(ticket => ticket.status === 'ok' && ticket.id)
+        .map(ticket => ticket.id);
+      
+      if (receiptIds.length > 0) {
+        logger.info(`Successfully sent ${receiptIds.length} notifications`);
+      }
     })();
-    res.status(201).json({ success: true, data: thought });
+
+    res.status(201).json({ 
+      success: true, 
+      data: thought,
+      message: `Power thought created and notifications sent to ${messages.length} users`
+    });
   } catch (error) {
     logger.error("Error creating PowerThought:", error);
     res.status(500).json({ success: false, message: "Server Error" });
