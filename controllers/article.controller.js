@@ -1,91 +1,17 @@
 const Article = require("../models/article.model");
-const { Expo } = require('expo-server-sdk');
 const logger = require("../services/logger");
-const User = require('../models/user.model');
-
-const expo = new Expo({
-  useFcmV1: true,
-});
 
 // Create an article
 exports.createArticle = async (req, res) => {
   try {
     const image = req.file ? req.file.destination + req.file.filename : null;
     const article = await Article.create({...req.body,image});
-    logger.info(`Article created with title "${req.body.title}"`);
+    logger.info(`Article created with title "${req.body.title}" for date ${article.date}. Notification will be sent on that date.`);
     
-    // Get all users with valid push tokens
-    const users = await User.find({ 
-      pushToken: { $ne: null, $exists: true } 
-    }).select("pushToken");
-    
-    if (users.length === 0) {
-      logger.info("No users with push tokens found");
-      return res.status(201).json({ success: true, article });
-    }
-
-    // Create the messages that you want to send to clients
-    let messages = [];
-    for (let user of users) {
-      if (!user.pushToken || !Expo.isExpoPushToken(user.pushToken)) {
-        logger.warn(`Push token ${user.pushToken} is not a valid Expo push token`);
-        continue;
-      }
-
-      // Truncate description if too long for notification body (max ~100 chars recommended)
-      const notificationBody = article.description && article.description.length > 100 
-        ? article.description.substring(0, 97) + '...' 
-        : article.description || article.title;
-
-      messages.push({
-        to: user.pushToken,
-        sound: 'default',
-        title: `New Article: ${article.title}`,
-        body: notificationBody,
-        data: { 
-          type: 'article',
-          articleId: article._id.toString(),
-          category: article.category,
-          date: article.date,
-          title: article.title
-        },
-      });
-    }
-
-    if (messages.length === 0) {
-      logger.info("No valid push tokens to send notifications to");
-      return res.status(201).json({ success: true, article });
-    }
-
-    // Send notifications in chunks
-    let chunks = expo.chunkPushNotifications(messages);
-    let tickets = [];
-    
-    (async () => {
-      for (let chunk of chunks) {
-        try {
-          const ticketChunk = await expo.sendPushNotificationsAsync(chunk);
-          tickets.push(...ticketChunk);
-          logger.info(`Sent ${chunk.length} push notifications`);
-        } catch (error) {
-          logger.error("Error sending push notifications:", error);
-        }
-      }
-      
-      // Log receipt IDs for tracking (optional)
-      const receiptIds = tickets
-        .filter(ticket => ticket.status === 'ok' && ticket.id)
-        .map(ticket => ticket.id);
-      
-      if (receiptIds.length > 0) {
-        logger.info(`Successfully sent ${receiptIds.length} notifications`);
-      }
-    })();
-
     res.status(201).json({ 
       success: true, 
       article,
-      message: `Article created and notifications sent to ${messages.length} users`
+      message: `Article created. Notification scheduled for ${article.date}`
     });
   } catch (error) {
     logger.error('Error creating article:', error);

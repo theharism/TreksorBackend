@@ -26,6 +26,10 @@ const articleSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
+    notificationSent: {
+        type: Boolean,
+        default: false,
+    },
 },{
     timestamps:true
 });

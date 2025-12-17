@@ -6,10 +6,14 @@ const loggingMiddleware = require('./middlewares/loggingMiddleware');
 const cors = require('cors');
 const db = require("./config/db");
 const path = require('path');
+const { startScheduler } = require('./services/notificationScheduler');
 
 const app = express();
 
 db();
+
+// Start the notification scheduler
+startScheduler();
 
 app.use(cors({
   origin: 'http://localhost:8081', // Replace with your frontend URL (Expo or any other)
